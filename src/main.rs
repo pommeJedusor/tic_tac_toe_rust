@@ -54,33 +54,38 @@ fn is_game_finished(grid: u32) -> bool {
     grid ^ 0b11101110111 == 0
 }
 
-fn get_score(player_1: u32, player_2: u32, depth: i8) -> i8 {
+// return 42 when no move available
+fn get_best_move(player_1: u32, player_2: u32, depth: i8) -> (usize, i8) {
     if is_winning(player_2) {
-        return depth - 9;
+        return (42, depth - 9);
     }
     if is_game_finished(player_1 | player_2) {
-        return 0;
+        return (42, 0);
     }
     let mut best_score = -10;
+    let mut best_move = 0;
     let moves = get_moves(player_1 | player_2);
     for i in 0..9 {
         if !moves[i] {
             continue;
         }
 
-        let score = -get_score(player_2, make_move(player_1, i), depth + 1);
+        let (_, score) = get_best_move(player_2, make_move(player_1, i), depth + 1);
+        let score = -score;
 
         if score > best_score {
             best_score = score;
+            best_move = i;
         }
     }
-    return best_score;
+    return (best_move, best_score);
 }
 
 fn main() {
     let player_1 = 0;
     let player_2 = 0;
     _show_grid(player_1, player_2);
-    let score = get_score(player_1, player_2, 1);
+    let (best_move, score) = get_best_move(player_1, player_2, 1);
     println!("the best score = {score}");
+    println!("the best move = {best_move}");
 }
