@@ -1,3 +1,7 @@
+use std::io;
+
+const FULL_GRID: u32 = 0b11101110111;
+
 fn get_moves(grid: u32) -> [bool; 9] {
     let mut result = [false; 9];
     for y in 0..3 {
@@ -51,7 +55,7 @@ fn is_winning(grid: u32) -> bool {
 }
 
 fn is_game_finished(grid: u32) -> bool {
-    grid ^ 0b11101110111 == 0
+    grid ^ FULL_GRID == 0
 }
 
 // return 42 when no move available
@@ -81,11 +85,103 @@ fn get_best_move(player_1: u32, player_2: u32, depth: i8) -> (usize, i8) {
     return (best_move, best_score);
 }
 
-fn main() {
-    let player_1 = 0;
-    let player_2 = 0;
+fn is_player_first() -> bool {
+    loop {
+        let mut result = String::new();
+        io::stdin()
+            .read_line(&mut result)
+            .expect("Failed to read line");
+        let result = result.trim();
+        if result == "y" || result == "Y" {
+            break true;
+        } else if result == "n" || result == "N" {
+            break false;
+        } else {
+            println!("invalid input '{result}'");
+        }
+    }
+}
+
+fn get_player_move(player_1: u32, player_2: u32) -> usize {
+    let available_moves = get_moves(player_1 | player_2);
+    loop {
+        // get input
+        let mut result = String::new();
+        io::stdin()
+            .read_line(&mut result)
+            .expect("Failed to read line");
+
+        // str -> int
+        let result: usize = match result.trim().parse() {
+            Ok(num) => num,
+            Err(_) => {
+                println!("Number's not valid");
+                continue;
+            }
+        };
+
+        // check move's inside the grid
+        if result < 1 || result > 9 {
+            println!("move's outside the grid");
+            continue;
+        }
+
+        // trad the move
+        let result = result - 1;
+
+        // check move's validity
+        if available_moves[result] {
+            return result;
+        }
+        println!("Move's not a valid one");
+    }
+}
+
+fn launch_game() {
+    println!("-- Welcome to this tic-tac-toe game --");
+    println!("-- Do you want to start? [y/n] --");
+    let is_bot_first = !is_player_first();
+    let mut turn = 1;
+    let mut player_1 = 0;
+    let mut player_2 = 0;
     _show_grid(player_1, player_2);
-    let (best_move, score) = get_best_move(player_1, player_2, 1);
-    println!("the best score = {score}");
-    println!("the best move = {best_move}");
+    let result = loop {
+        // check game status
+        if is_winning(player_1) && is_bot_first || is_winning(player_2) && !is_bot_first {
+            break "You lost";
+        }
+        if is_winning(player_2) && is_bot_first || is_winning(player_1) && !is_bot_first {
+            break "You won";
+        }
+        if is_game_finished(player_1 | player_2) {
+            break "Draw";
+        }
+
+        println!();
+
+        // get move
+        let r#move: usize;
+        if is_bot_first && turn % 2 == 1 || !is_bot_first && turn % 2 == 0 {
+            (r#move, _) = get_best_move(player_1, player_2, turn);
+            let str_move = r#move + 1;
+            println!("I play {str_move}");
+        } else {
+            println!("Play a move");
+            r#move = get_player_move(player_1, player_2);
+        }
+
+        // make move
+        if turn % 2 == 1 {
+            player_1 = make_move(player_1, r#move);
+        } else {
+            player_2 = make_move(player_2, r#move);
+        }
+        turn += 1;
+        _show_grid(player_1, player_2);
+    };
+    println!("{result}");
+}
+
+fn main() {
+    launch_game();
 }
